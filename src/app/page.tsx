@@ -17,47 +17,70 @@ import ParticipantCard from '@/components/ParticipantCard';
 import ExportButtons from '@/components/ExportButtons';
 import SummaryStats from '@/components/SummaryStats';
 import ThemeToggle from '@/components/ThemeToggle';
-import PasswordGate from '@/components/PasswordGate';
 
 export default function Home() {
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  // Data state
   const [experimentData, setExperimentData] = useState<ExperimentData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(false);
 
-  // Load data from Firestore on mount
-  useEffect(() => {
-    async function loadData() {
-      try {
-        // Try Firestore first
-        const firestoreData = await loadFromFirestore();
-        if (firestoreData) {
-          setExperimentData(firestoreData);
-        } else {
-          // Fallback to localStorage if Firestore is empty
-          const localData = loadFromLocalStorage();
-          if (localData) {
-            setExperimentData(localData);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-        // Fallback to localStorage on error
+  const SITE_PASSWORD = process.env.NEXT_PUBLIC_SITE_PASSWORD;
+
+  // Handle login - load data ONLY after successful authentication
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+
+    if (!SITE_PASSWORD) {
+      setAuthError('Configuration error - password not set');
+      return;
+    }
+
+    if (password === SITE_PASSWORD) {
+      setIsAuthenticated(true);
+      // Load data from Firestore AFTER authentication
+      loadData();
+    } else {
+      setAuthError('Incorrect password');
+      setPassword('');
+    }
+  };
+
+  // Load data from Firestore (only called after authentication)
+  const loadData = async () => {
+    setIsDataLoading(true);
+    try {
+      const firestoreData = await loadFromFirestore();
+      if (firestoreData) {
+        setExperimentData(firestoreData);
+      } else {
         const localData = loadFromLocalStorage();
         if (localData) {
           setExperimentData(localData);
         }
       }
-      setIsInitialized(true);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      const localData = loadFromLocalStorage();
+      if (localData) {
+        setExperimentData(localData);
+      }
+    } finally {
+      setIsDataLoading(false);
     }
-    loadData();
-  }, []);
+  };
 
-  // Save to Firestore whenever data changes
+  // Save to Firestore whenever data changes (only if authenticated)
   useEffect(() => {
-    if (isInitialized && experimentData) {
+    if (isAuthenticated && experimentData) {
       saveToFirestore(experimentData).catch(console.error);
     }
-  }, [experimentData, isInitialized]);
+  }, [experimentData, isAuthenticated]);
 
   const handleGenerate = (participants: number) => {
     setIsLoading(true);
@@ -103,17 +126,66 @@ export default function Home() {
     }
   };
 
-  // Show nothing until initialized to prevent hydration mismatch
-  if (!isInitialized) {
+  // Show password form if not authenticated
+  if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="bg-card rounded-lg shadow-lg border border-border p-8 w-full max-w-md">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold text-card-foreground">
+              Compressibility Study
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Enter password to access
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin}>
+            <div className="mb-4">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
+                className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+                autoFocus
+              />
+            </div>
+
+            {authError && (
+              <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-destructive">{authError}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors cursor-pointer"
+            >
+              Access Study
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
 
+  // Show loading state while data is being fetched
+  if (isDataLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading data...</div>
+      </div>
+    );
+  }
+
+  // Show main content after authentication
   return (
-    <PasswordGate>
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-50">
@@ -263,6 +335,5 @@ export default function Home() {
         </div>
       </footer>
     </div>
-    </PasswordGate>
   );
 }
