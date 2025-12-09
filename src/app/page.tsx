@@ -29,25 +29,19 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(false);
 
-  const SITE_PASSWORD = process.env.NEXT_PUBLIC_SITE_PASSWORD;
+  // Match FLL pattern: fallback password in case env var isn't set
+  const SITE_PASSWORD = process.env.NEXT_PUBLIC_SITE_PASSWORD || 'hamsandwich1943';
 
-  // Handle login - load data ONLY after successful authentication
-  const handleLogin = async (e: React.FormEvent) => {
+  // Handle login - synchronous like FLL admin page
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthError('');
-
-    if (!SITE_PASSWORD) {
-      setAuthError('Configuration error - password not set');
-      return;
-    }
-
     if (password === SITE_PASSWORD) {
       setIsAuthenticated(true);
+      setAuthError('');
       // Load data from Firestore AFTER authentication
       loadData();
     } else {
       setAuthError('Incorrect password');
-      setPassword('');
     }
   };
 
