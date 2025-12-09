@@ -207,7 +207,7 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {experimentData && <ExportButtons data={experimentData} onRefresh={handleRefresh} isRefreshing={isRefreshing} />}
+              {experimentData && <ExportButtons data={experimentData} />}
               <ThemeToggle />
             </div>
           </div>
@@ -240,21 +240,35 @@ export default function Home() {
                     Participant Randomizations ({experimentData.participants.length})
                   </h2>
 
-                  {/* Add Participant Button */}
-                  <button
-                    onClick={handleAddParticipant}
-                    disabled={experimentData.participants.length >= 50}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm ${
-                      experimentData.participants.length >= 50
-                        ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                        : 'bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    {experimentData.participants.length >= 50 ? 'Max 50 Participants' : 'Add Participant'}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    {/* Update Participants Button */}
+                    <button
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm bg-secondary hover:bg-secondary/80 text-secondary-foreground cursor-pointer disabled:opacity-50"
+                    >
+                      <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      {isRefreshing ? 'Updating...' : 'Update Participants'}
+                    </button>
+
+                    {/* Add Participant Button */}
+                    <button
+                      onClick={handleAddParticipant}
+                      disabled={experimentData.participants.length >= 50}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm ${
+                        experimentData.participants.length >= 50
+                          ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                          : 'bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer'
+                      }`}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      {experimentData.participants.length >= 50 ? 'Max 50 Participants' : 'Add Participant'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Participant Cards */}
