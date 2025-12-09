@@ -394,22 +394,40 @@ export async function saveToFirestore(data: ExperimentData): Promise<void> {
   }
 }
 
-// Load from Firestore
+// Load from Firestore with timeout
 export async function loadFromFirestore(): Promise<ExperimentData | null> {
-  try {
-    const docRef = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
-    const docSnap = await getDoc(docRef);
+  console.log('[DEBUG] loadFromFirestore: Starting...');
 
-    if (docSnap.exists()) {
+  // Add timeout to prevent hanging
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Firestore timeout after 10s')), 10000);
+  });
+
+  try {
+    console.log('[DEBUG] loadFromFirestore: Creating doc reference...');
+    const docRef = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
+
+    console.log('[DEBUG] loadFromFirestore: Calling getDoc with timeout...');
+    const docSnap = await Promise.race([
+      getDoc(docRef),
+      timeoutPromise
+    ]);
+
+    console.log('[DEBUG] loadFromFirestore: getDoc completed, exists:', docSnap?.exists());
+
+    if (docSnap && docSnap.exists()) {
       const data = docSnap.data() as ExperimentData;
+      console.log('[DEBUG] loadFromFirestore: Data loaded successfully');
       // Update localStorage with latest from Firestore
       saveToLocalStorage(data);
       return data;
     }
+    console.log('[DEBUG] loadFromFirestore: No data found in Firestore');
     return null;
   } catch (error) {
-    console.error('Error loading from Firestore:', error);
+    console.error('[DEBUG] loadFromFirestore: Error:', error);
     // Fallback to localStorage
+    console.log('[DEBUG] loadFromFirestore: Falling back to localStorage');
     return loadFromLocalStorage();
   }
 }
