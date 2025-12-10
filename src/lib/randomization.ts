@@ -403,28 +403,19 @@ const FIRESTORE_DOC_ID = 'main';
 
 // Save to Firestore
 export async function saveToFirestore(data: ExperimentData): Promise<void> {
-  console.log('[DEBUG] saveToFirestore: Starting...');
-
-  // Add timeout to prevent hanging
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Firestore save timeout after 10s')), 10000);
   });
 
   try {
-    console.log('[DEBUG] saveToFirestore: Creating doc reference...');
     const docRef = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
-
-    console.log('[DEBUG] saveToFirestore: Calling setDoc...');
     await Promise.race([
       setDoc(docRef, data),
       timeoutPromise
     ]);
-
-    console.log('[DEBUG] saveToFirestore: Data saved successfully');
     // Also save to localStorage as backup
     saveToLocalStorage(data);
   } catch (error) {
-    console.error('[DEBUG] saveToFirestore: Error:', error);
     // Fallback to localStorage only
     saveToLocalStorage(data);
     throw error;
@@ -433,38 +424,26 @@ export async function saveToFirestore(data: ExperimentData): Promise<void> {
 
 // Load from Firestore with timeout
 export async function loadFromFirestore(): Promise<ExperimentData | null> {
-  console.log('[DEBUG] loadFromFirestore: Starting...');
-
-  // Add timeout to prevent hanging
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Firestore timeout after 10s')), 10000);
   });
 
   try {
-    console.log('[DEBUG] loadFromFirestore: Creating doc reference...');
     const docRef = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOC_ID);
-
-    console.log('[DEBUG] loadFromFirestore: Calling getDoc with timeout...');
     const docSnap = await Promise.race([
       getDoc(docRef),
       timeoutPromise
     ]);
 
-    console.log('[DEBUG] loadFromFirestore: getDoc completed, exists:', docSnap?.exists());
-
     if (docSnap && docSnap.exists()) {
       const data = docSnap.data() as ExperimentData;
-      console.log('[DEBUG] loadFromFirestore: Data loaded successfully');
       // Update localStorage with latest from Firestore
       saveToLocalStorage(data);
       return data;
     }
-    console.log('[DEBUG] loadFromFirestore: No data found in Firestore');
     return null;
-  } catch (error) {
-    console.error('[DEBUG] loadFromFirestore: Error:', error);
+  } catch {
     // Fallback to localStorage
-    console.log('[DEBUG] loadFromFirestore: Falling back to localStorage');
     return loadFromLocalStorage();
   }
 }

@@ -12,14 +12,6 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Debug: Log Firebase config (without sensitive data)
-console.log('[DEBUG] Firebase Config:', {
-  projectId: firebaseConfig.projectId,
-  authDomain: firebaseConfig.authDomain,
-  hasApiKey: !!firebaseConfig.apiKey,
-  hasAppId: !!firebaseConfig.appId,
-});
-
 // Initialize Firebase app (singleton pattern to prevent multiple initializations)
 function getFirebaseApp(): FirebaseApp {
   if (!getApps().length) {
@@ -40,7 +32,6 @@ export const db: Firestore = (() => {
     dbInstance = initializeFirestore(app, {
       experimentalForceLongPolling: true,
     });
-    console.log('[DEBUG] Firestore initialized with long polling');
   }
   return dbInstance;
 })();
